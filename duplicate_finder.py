@@ -1,8 +1,6 @@
 """
 Module to loop and find duplicate files in given directory and sub-directories
 """
-
-import sys
 import os
 import hashlib
 import re
@@ -17,9 +15,9 @@ def chunk_reader(fobj, chunk_size=1024):
         yield chunk
 
 
-def get_hash(filename, first_chunk_only=False, hash=hashlib.sha1):
+def get_hash(filename, first_chunk_only=False, hash_func=hashlib.sha1):
     """Returns hash of the file"""
-    hashobj = hash()
+    hashobj = hash_func()
     file_object = open(filename, 'rb')
 
     if first_chunk_only:
@@ -33,12 +31,20 @@ def get_hash(filename, first_chunk_only=False, hash=hashlib.sha1):
     return hashed
 
 
-def find_for_duplicates(path, duplicates_path=None, move_files=False, hash=hashlib.sha1):
+def find_duplicates(path, duplicates_path=None, move_files=False):
+    """
+    Loops through files and returns a list with paths to duplicate files
+    :param path: Directory to be searched
+    :param duplicates_path: Directory where duplicate files should be moved
+    :param move_files: Move files or just notify user
+    :param hash: hash function to identify files
+    :return: list of paths
+    """
     hashes_by_size = {}
     hashes_on_1k = {}
     hashes_full = {}
 
-    for dirpath, dirnames, filenames in os.walk(path):
+    for dirpath, _dirnames, filenames in os.walk(path):
         for filename in filenames:
             full_path = os.path.join(dirpath, filename)
             try:
@@ -70,7 +76,8 @@ def find_for_duplicates(path, duplicates_path=None, move_files=False, hash=hashl
                 hashes_on_1k[small_hash] = []  # create the list for this 1k hash
                 hashes_on_1k[small_hash].append(filename)
 
-    # For all files with the hash on the 1st 1024 bytes, get their hash on the full file - collisions will be duplicates
+    # For all files with the hash on the 1st 1024 bytes, get their hash on the full file
+    #  - collisions will be duplicates
     duplicates = []
     for __, files in hashes_on_1k.items():
         if len(files) < 2:
@@ -89,12 +96,20 @@ def find_for_duplicates(path, duplicates_path=None, move_files=False, hash=hashl
                     os.rename(filename, os.path.join(duplicates_path, just_file_name))
             else:
                 hashes_full[full_hash] = filename
-    print(len(duplicates), "duplicates found")
     return duplicates
 
 
-if __name__ == "__main__":
-    test_path = os.path.normpath("D:/Amazon Drive/Amazon Drive/Pictures/2017/Giminiu Susitikimas Liepa")
-    duplicate_folder = os.path.normpath("D:\Temp\Duplicates")
+def test():
+    """
+    Testing function
+    :return:
+    """
+    test_path = os.path.normpath(
+        "D:/Amazon Drive/Amazon Drive/Pictures/2017/Giminiu Susitikimas Liepa")
+    duplicate_folder = os.path.normpath("D:/Temp/Duplicates")
 
-    dupl_test = find_for_duplicates(test_path, duplicate_folder, move_files=False)
+    dupl_test = find_duplicates(test_path, duplicate_folder, move_files=False)
+    print(len(dupl_test), "duplicates found")
+
+if __name__ == "__main__":
+    test()
